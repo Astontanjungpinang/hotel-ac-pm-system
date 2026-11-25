@@ -1,0 +1,23 @@
+const APPS_SCRIPT_URL = "https://script.google.com/a/macros/astonhotelsinternational.com/s/AKfycbyLzsPmdOda20WtsNTpVwdgyZuVikIpfo4-Q8LBBX_Rl8q6nJ_9ZSX66PEQC8VAWjZpIA/exec";
+
+// Mengambil data dari Google Sheets saat web dibuka
+async function loadFromGoogleSheets() {
+  const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
+  const data = await res.json();
+  // Render data.units, data.logs, data.emails ke dashboard
+}
+
+// Mengirim email langsung ke HOD (To) & GM (CC) via server Google
+async function sendEmailViaServer(toEmail, ccEmail, subject, htmlBody, reportType) {
+  await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "sendEmail",
+      toEmail,
+      ccEmail,
+      subject,
+      htmlBody,
+      reportType
+    })
+  });
+}
