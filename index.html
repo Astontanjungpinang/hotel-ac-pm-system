@@ -1,23 +1,1176 @@
-const APPS_SCRIPT_URL = "https://script.google.com/a/macros/astonhotelsinternational.com/s/AKfycbyLzsPmdOda20WtsNTpVwdgyZuVikIpfo4-Q8LBBX_Rl8q6nJ_9ZSX66PEQC8VAWjZpIA/exec";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASTON Tanjungpinang PM System | 4-Star Hotel Engineering</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+    .tab-active { background-color: #0f172a; color: #f8fafc; border-left: 4px solid #d97706; }
+    .card-shadow { box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased">
 
-// Mengambil data dari Google Sheets saat web dibuka
-async function loadFromGoogleSheets() {
-  const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
-  const data = await res.json();
-  // Render data.units, data.logs, data.emails ke dashboard
-}
+  <!-- Top Navbar -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center text-white font-bold shadow">
+          <i class="fa-solid fa-snowflake text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg tracking-tight">ENGINEERING HVAC PM</h1>
+            <span class="hidden sm:inline-block text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-medium">
+              4-Star Hotel Standard
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Preventive Maintenance & Executive Escalation System</p>
+        </div>
+      </div>
 
-// Mengirim email langsung ke HOD (To) & GM (CC) via server Google
-async function sendEmailViaServer(toEmail, ccEmail, subject, htmlBody, reportType) {
-  await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "sendEmail",
-      toEmail,
-      ccEmail,
-      subject,
-      htmlBody,
-      reportType
-    })
-  });
-}
+      <div class="flex items-center gap-3">
+        <div id="syncBadge" class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
+          <span id="syncDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span id="syncText" class="text-slate-300">Menghubungkan...</span>
+        </div>
+        <button onclick="syncAllData()" title="Refresh dari Google Sheets" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+          <i id="syncIcon" class="fa-solid fa-rotate"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
+    <!-- Sidebar Navigation -->
+    <aside class="w-full lg:w-64 flex-shrink-0">
+      <nav class="bg-white rounded-xl card-shadow overflow-hidden border border-slate-200">
+        <div class="p-4 border-b border-slate-100 bg-slate-50">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Menu Operasional</p>
+        </div>
+        <ul class="divide-y divide-slate-100 text-sm font-medium">
+          <li>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn tab-active w-full text-left px-4 py-3.5 flex items-center gap-3 transition">
+              <i class="fa-solid fa-chart-pie w-5 text-amber-500"></i> Dashboard & Zona
+            </button>
+          </li>
+          <li>
+            <button onclick="switchTab('units')" id="nav-units" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition">
+              <i class="fa-solid fa-fan w-5 text-slate-400"></i> Jadwal & Unit AC
+            </button>
+          </li>
+          <li>
+            <button onclick="switchTab('logs')" id="nav-logs" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition">
+              <i class="fa-solid fa-clipboard-check w-5 text-slate-400"></i> Riwayat Log PM
+            </button>
+          </li>
+          <li>
+            <button onclick="switchTab('email')" id="nav-email" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition">
+              <i class="fa-solid fa-envelope-open-text w-5 text-slate-400"></i> Notifikasi HOD & GM
+            </button>
+          </li>
+          <li>
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition">
+              <i class="fa-solid fa-gear w-5 text-slate-400"></i> Pengaturan & API
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Quick Escalation Card -->
+      <div class="mt-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-4 card-shadow border border-slate-700">
+        <div class="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase mb-1">
+          <i class="fa-solid fa-paper-plane"></i> Laporan Cepat Manajemen
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+          Kirim rekap status AC Overdue & Due Soon langsung ke email HOD Engineering (To) & General Manager (CC).
+        </p>
+        <button onclick="switchTab('email')" class="w-full py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-lg transition shadow">
+          Buka Panel Notifikasi
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 min-w-0">
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-content space-y-6">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl card-shadow border border-slate-200">
+            <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+              <span>TOTAL ASET AC</span>
+              <i class="fa-solid fa-building text-slate-400"></i>
+            </div>
+            <p id="kpiTotal" class="text-2xl font-bold text-slate-900 mt-2">0</p>
+            <p class="text-[11px] text-slate-400 mt-1">Seluruh zona operasional</p>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl card-shadow border border-slate-200">
+            <div class="flex items-center justify-between text-emerald-600 text-xs font-medium">
+              <span>ON SCHEDULE</span>
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <p id="kpiHealthy" class="text-2xl font-bold text-emerald-600 mt-2">0</p>
+            <p class="text-[11px] text-slate-400 mt-1">Kondisi prima & terawat</p>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl card-shadow border border-amber-200 bg-amber-50/30">
+            <div class="flex items-center justify-between text-amber-600 text-xs font-medium">
+              <span>DUE SOON (H-3)</span>
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <p id="kpiDueSoon" class="text-2xl font-bold text-amber-600 mt-2">0</p>
+            <p class="text-[11px] text-amber-700/70 mt-1">Jatuh tempo <= 3 hari</p>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl card-shadow border border-rose-200 bg-rose-50/30">
+            <div class="flex items-center justify-between text-rose-600 text-xs font-medium">
+              <span>OVERDUE</span>
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <p id="kpiOverdue" class="text-2xl font-bold text-rose-600 mt-2">0</p>
+            <p class="text-[11px] text-rose-700/70 mt-1">Wajib segera dikerjakan</p>
+          </div>
+        </div>
+
+        <!-- Zone Breakdown & Priority List -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-5 rounded-xl card-shadow border border-slate-200">
+            <h2 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-layer-group text-amber-600"></i> Kepatuhan PM per Zona Hotel
+            </h2>
+            <div id="zoneProgressContainer" class="space-y-4"></div>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl card-shadow border border-slate-200">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-fire text-rose-500"></i> Prioritas Tindakan Teknisi
+              </h2>
+              <button onclick="switchTab('units')" class="text-xs text-amber-600 hover:underline font-medium">Lihat Semua</button>
+            </div>
+            <div id="priorityList" class="divide-y divide-slate-100 max-h-72 overflow-y-auto"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: UNITS & SCHEDULE -->
+      <section id="tab-units" class="tab-content hidden space-y-4">
+        <div class="bg-white p-4 rounded-xl card-shadow border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2 flex-1">
+            <div class="relative flex-1 min-w-[200px]">
+              <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" id="searchInput" oninput="renderUnitsTable()" placeholder="Cari kode unit, lokasi, PIC..." class="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500" />
+            </div>
+            <select id="zoneFilter" onchange="renderUnitsTable()" class="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white">
+              <option value="ALL">Semua Zona</option>
+              <option value="Guest Rooms">Guest Rooms</option>
+              <option value="Lobby & Public Area">Lobby & Public Area</option>
+              <option value="Ballroom & Meeting">Ballroom & Meeting</option>
+              <option value="F&B Outlets">F&B Outlets</option>
+              <option value="BOH & Kitchen">BOH & Kitchen</option>
+            </select>
+            <select id="statusFilter" onchange="renderUnitsTable()" class="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white">
+              <option value="ALL">Semua Status</option>
+              <option value="OVERDUE">Overdue</option>
+              <option value="DUE_SOON">Due Soon (H-3)</option>
+              <option value="OK">On Schedule</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportCSV()" class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+              <i class="fa-solid fa-file-csv mr-1"></i> Export CSV
+            </button>
+            <button onclick="openUnitModal()" class="px-3.5 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition">
+              <i class="fa-solid fa-plus mr-1"></i> Tambah Unit AC
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl card-shadow border border-slate-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
+                  <th class="py-3 px-4">Kode & Nama Unit</th>
+                  <th class="py-3 px-4">Zona / Lokasi</th>
+                  <th class="py-3 px-4">Tipe & Kapasitas</th>
+                  <th class="py-3 px-4">PM Terakhir</th>
+                  <th class="py-3 px-4">Jadwal Berikutnya</th>
+                  <th class="py-3 px-4">PIC</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="unitsTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: LOGS -->
+      <section id="tab-logs" class="tab-content hidden space-y-4">
+        <div class="bg-white p-5 rounded-xl card-shadow border border-slate-200">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="font-bold text-slate-800 text-base">Riwayat Eksekusi Preventive Maintenance</h2>
+              <p class="text-xs text-slate-500">Data tersinkronisasi langsung dengan tab <code class="bg-slate-100 px-1 rounded">Logs</code> di Google Sheets</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
+                  <th class="py-3 px-3">Tanggal</th>
+                  <th class="py-3 px-3">Unit AC</th>
+                  <th class="py-3 px-3">Teknisi</th>
+                  <th class="py-3 px-3">Parameter Teknis</th>
+                  <th class="py-3 px-3">Checklist SOP</th>
+                  <th class="py-3 px-3">Catatan</th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: EMAIL NOTIFICATION TO HOD & CC GM -->
+      <section id="tab-email" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Control Panel -->
+          <div class="lg:col-span-5 bg-white p-5 rounded-xl card-shadow border border-slate-200 space-y-4">
+            <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane text-amber-600"></i> Kirim Laporan Manajemen
+            </h2>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Laporan Email</label>
+              <select id="emailReportType" onchange="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white">
+                <option value="ALERT_DUE">Alert Unit Overdue & Due Soon (H-3)</option>
+                <option value="MONTHLY_RECAP">Rekap Kepatuhan PM Bulanan (All Units)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">To: Email HOD Engineering</label>
+              <input type="email" id="emailToInput" oninput="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" placeholder="chief.engineering@hotel.com" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">CC: Email General Manager</label>
+              <input type="email" id="emailCcInput" oninput="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" placeholder="gm@hotel.com" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan Chief / Admin</label>
+              <textarea id="emailCustomNote" oninput="generateEmailPreview()" rows="2" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" placeholder="Contoh: Mohon approval pengadaan filter AHU Ballroom minggu ini..."></textarea>
+            </div>
+
+            <div class="pt-2 space-y-2">
+              <button id="btnSendServer" onclick="sendEmailNow()" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2 shadow">
+                <i class="fa-solid fa-bolt text-amber-400"></i> Kirim Otomatis via Server Google
+              </button>
+              <button onclick="openMailtoFallback()" class="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka di Aplikasi Email (Fallback)
+              </button>
+            </div>
+          </div>
+
+          <!-- Email Preview -->
+          <div class="lg:col-span-7 bg-white rounded-xl card-shadow border border-slate-200 overflow-hidden flex flex-col">
+            <div class="bg-slate-800 text-white px-4 py-3 text-xs flex items-center justify-between">
+              <span class="font-semibold"><i class="fa-solid fa-eye mr-1.5 text-amber-400"></i> Live Preview Email Manajemen</span>
+              <span class="text-slate-400">Format HTML Formal</span>
+            </div>
+            <div class="p-4 bg-slate-50 border-b border-slate-200 text-xs space-y-1">
+              <div><span class="font-semibold text-slate-500 w-16 inline-block">To:</span> <span id="prevTo" class="text-slate-800 font-medium"></span></div>
+              <div><span class="font-semibold text-slate-500 w-16 inline-block">CC:</span> <span id="prevCc" class="text-slate-800 font-medium"></span></div>
+              <div><span class="font-semibold text-slate-500 w-16 inline-block">Subject:</span> <span id="prevSubject" class="text-slate-900 font-bold"></span></div>
+            </div>
+            <div id="emailHtmlPreview" class="p-5 text-xs overflow-y-auto max-h-[420px] bg-white"></div>
+          </div>
+        </div>
+
+        <!-- Audit Log Pengiriman Email -->
+        <div class="bg-white p-5 rounded-xl card-shadow border border-slate-200">
+          <h3 class="font-bold text-slate-800 text-sm mb-3">Audit Trail Notifikasi Email Terkirim</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
+                  <th class="py-2.5 px-3">Waktu Kirim</th>
+                  <th class="py-2.5 px-3">Tipe</th>
+                  <th class="py-2.5 px-3">To (HOD)</th>
+                  <th class="py-2.5 px-3">CC (GM)</th>
+                  <th class="py-2.5 px-3">Subjek</th>
+                  <th class="py-2.5 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="emailHistoryBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: SETTINGS -->
+      <section id="tab-settings" class="tab-content hidden">
+        <div class="bg-white p-6 rounded-xl card-shadow border border-slate-200 max-w-2xl space-y-5">
+          <div>
+            <h2 class="font-bold text-slate-800 text-base">Konfigurasi Database Google Sheets & Penerima Email</h2>
+            <p class="text-xs text-slate-500 mt-1">Hubungkan aplikasi Vercel ini dengan Google Apps Script Web App Anda.</p>
+          </div>
+
+          <div class="space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Nama Properti / Hotel</label>
+              <input type="text" id="cfgHotelName" class="w-full border border-slate-300 rounded-lg px-3 py-2" placeholder="Grand Aurelia Hotel & Convention" />
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Google Apps Script Web App URL (<code class="text-amber-600">/exec</code>)</label>
+              <input type="url" id="cfgScriptUrl" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono text-[11px]" placeholder="https://script.google.com/macros/s/AKfycb.../exec" />
+              <p class="text-[11px] text-slate-400 mt-1">Kosongkan jika ingin mencoba mode Demo Lokal terlebih dahulu.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Default Email HOD Engineering (To)</label>
+                <input type="email" id="cfgHodEmail" class="w-full border border-slate-300 rounded-lg px-3 py-2" placeholder="chief.engineering@hotel.com" />
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Default Email General Manager (CC)</label>
+                <input type="email" id="cfgGmEmail" class="w-full border border-slate-300 rounded-lg px-3 py-2" placeholder="gm@hotel.com" />
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center gap-3">
+            <button onclick="saveSettings()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition">
+              Simpan & Sinkronkan
+            </button>
+            <button onclick="seedDemoDataToSheet()" class="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-lg transition">
+              Isi Data Awal Hotel (6 Unit Sample)
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL 1: ADD / EDIT AC UNIT -->
+  <div id="unitModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="unitModalTitle" class="font-bold text-slate-800 text-base">Tambah Unit AC Baru</h3>
+        <button onclick="closeUnitModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="unitForm" onsubmit="handleSaveUnit(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="fUnitId" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Kode Aset *</label>
+            <input type="text" id="fCode" required placeholder="AC-LBY-01" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Nama Unit *</label>
+            <input type="text" id="fName" required placeholder="AHU Main Lobby" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Zona Hotel *</label>
+            <select id="fZone" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+              <option value="Guest Rooms">Guest Rooms</option>
+              <option value="Lobby & Public Area">Lobby & Public Area</option>
+              <option value="Ballroom & Meeting">Ballroom & Meeting</option>
+              <option value="F&B Outlets">F&B Outlets</option>
+              <option value="BOH & Kitchen">BOH & Kitchen</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Lokasi Spesifik *</label>
+            <input type="text" id="fLocation" required placeholder="Lantai 1 - Reception" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Tipe Unit</label>
+            <select id="fType" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+              <option value="Split Wall">Split Wall</option>
+              <option value="Ceiling Cassette">Ceiling Cassette</option>
+              <option value="FCU (Fan Coil)">FCU (Fan Coil)</option>
+              <option value="AHU">AHU</option>
+              <option value="Chiller">Chiller</option>
+              <option value="VRV / VRF">VRV / VRF</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Merk</label>
+            <input type="text" id="fBrand" placeholder="Daikin" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Kapasitas (PK/BTU)</label>
+            <input type="text" id="fBtu" placeholder="2 PK / 18.000 BTU" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Interval PM (Hari)</label>
+            <input type="number" id="fInterval" value="30" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">PM Terakhir *</label>
+            <input type="date" id="fLastPm" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Teknisi PIC *</label>
+            <input type="text" id="fPic" required placeholder="Budi Santoso" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+        </div>
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeUnitModal()" class="px-4 py-2 bg-slate-100 rounded-lg font-medium">Batal</button>
+          <button type="submit" id="btnSaveUnit" class="px-4 py-2 bg-slate-900 text-white rounded-lg font-semibold">Simpan Unit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: EXECUTE PM CHECKLIST -->
+  <div id="pmModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base">Form Eksekusi Preventive Maintenance</h3>
+          <p id="pmModalSubtitle" class="text-xs text-amber-600 font-medium"></p>
+        </div>
+        <button onclick="closePmModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="handleSubmitPM(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="pmUnitId" />
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Tanggal Pengerjaan *</label>
+            <input type="date" id="pmDate" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Nama Teknisi Pelaksana *</label>
+            <input type="text" id="pmTech" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+          <p class="font-semibold text-slate-700">Checklist Standar SOP Hotel Bintang 4:</p>
+          <label class="flex items-center gap-2"><input type="checkbox" class="pm-chk" value="Cuci Filter & Grill" checked /> Cuci & sanitasi filter udara + return grill</label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="pm-chk" value="Cleaning Evaporator & Condenser" checked /> Chemical/jet cleaning coil evaporator & condenser</label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="pm-chk" value="Flushing Drainase" checked /> Flushing pipa drainase & cek anti-bocor kondensat</label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="pm-chk" value="Cek Kelistrikan & Thermostat" checked /> Kencangkan terminal listrik & kalibrasi thermostat</label>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Tekanan Freon (PSI)</label>
+            <input type="text" id="pmPsi" placeholder="135 PSI" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Arus Kompresor (A)</label>
+            <input type="text" id="pmAmp" placeholder="6.4 A" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Suhu Supply (°C)</label>
+            <input type="text" id="pmTemp" placeholder="14.5 °C" required class="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-1">Catatan Kondisi Unit / Temuan</label>
+          <textarea id="pmNotes" rows="2" placeholder="Unit beroperasi normal, tidak ada getaran abnormal..." class="w-full border border-slate-300 rounded-lg px-3 py-2"></textarea>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closePmModal()" class="px-4 py-2 bg-slate-100 rounded-lg font-medium">Batal</button>
+          <button type="submit" id="btnSubmitPm" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold">
+            <i class="fa-solid fa-check mr-1"></i> Selesaikan PM & Update Jadwal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+    <i class="fa-solid fa-circle-info text-amber-400"></i>
+    <span id="toastMsg"></span>
+  </div>
+
+  <script>
+    // =========================================================================
+    // KONFIGURASI DEFAULT (Bisa diisi permanen di sini atau lewat menu Settings)
+    // =========================================================================
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRTiXXl8eeG220p3T-tH3LqwxecX9YEGBtVs6mIEVYLSU7hZq6hbT0pX4prJDPpcfJuQ/exec"; // Tempel URL /exec Google Apps Script Anda di sini
+    const DEFAULT_HOTEL_NAME = "Aston Tanjungpinang Hotels";
+    const DEFAULT_HOD_EMAIL  = "tanjungpinangaitm@astonhotelsinternational.com";
+    const DEFAULT_GM_EMAIL   = "itm.astontpi@gmail.com";
+
+    // State Aplikasi
+    let config = {
+      scriptUrl: localStorage.getItem('hvac_script_url') || DEFAULT_SCRIPT_URL,
+      hotelName: localStorage.getItem('hvac_hotel_name') || DEFAULT_HOTEL_NAME,
+      hodEmail:  localStorage.getItem('hvac_hod_email')  || DEFAULT_HOD_EMAIL,
+      gmEmail:   localStorage.getItem('hvac_gm_email')   || DEFAULT_GM_EMAIL
+    };
+
+    let state = {
+      units: [],
+      logs: [],
+      emails: []
+    };
+
+    // Data Sample Bawaan (Digunakan jika belum terhubung ke Google Sheets)
+    function getSampleUnits() {
+      const today = new Date();
+      const fmt = (offset) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() + offset);
+        return d.toISOString().split('T')[0];
+      };
+      return [
+        { id: 'U-101', code: 'AC-LBY-01', name: 'AHU Main Lobby Timur', zone: 'Lobby & Public Area', location: 'Lantai 1 - Main Lobby', type: 'AHU', brand: 'Daikin', btu: '15 PK', intervalDays: 30, lastPmDate: fmt(-33), nextPmDate: fmt(-3), pic: 'Budi Santoso', status: 'Active' },
+        { id: 'U-102', code: 'AC-BLR-01', name: 'Chiller Grand Ballroom A', zone: 'Ballroom & Meeting', location: 'Lantai 2 - Ballroom', type: 'Chiller', brand: 'Trane', btu: '40 TR', intervalDays: 30, lastPmDate: fmt(-28), nextPmDate: fmt(2), pic: 'Andi Wijaya', status: 'Active' },
+        { id: 'U-103', code: 'AC-RM-301', name: 'FCU Deluxe Room 301-310', zone: 'Guest Rooms', location: 'Lantai 3 - Wing A', type: 'FCU (Fan Coil)', brand: 'York', btu: '1.5 PK', intervalDays: 60, lastPmDate: fmt(-59), nextPmDate: fmt(1), pic: 'Rudi Hartono', status: 'Active' },
+        { id: 'U-104', code: 'AC-FNB-01', name: 'Cassette All-Day Dining', zone: 'F&B Outlets', location: 'Lantai 1 - Restoran', type: 'Ceiling Cassette', brand: 'Daikin', btu: '5 PK', intervalDays: 30, lastPmDate: fmt(-15), nextPmDate: fmt(15), pic: 'Budi Santoso', status: 'Active' },
+        { id: 'U-105', code: 'AC-KIT-02', name: 'Split Pastry & Cold Kitchen', zone: 'BOH & Kitchen', location: 'Basement 1 - Kitchen', type: 'Split Wall', brand: 'Mitsubishi', btu: '2.5 PK', intervalDays: 30, lastPmDate: fmt(-35), nextPmDate: fmt(-5), pic: 'Dedi Kurniawan', status: 'Active' },
+        { id: 'U-106', code: 'AC-RM-501', name: 'VRV Executive Suite 501', zone: 'Guest Rooms', location: 'Lantai 5 - VIP Floor', type: 'VRV / VRF', brand: 'Daikin', btu: '6 PK', intervalDays: 45, lastPmDate: fmt(-20), nextPmDate: fmt(25), pic: 'Andi Wijaya', status: 'Active' }
+      ];
+    }
+
+    // =========================================================================
+    // INISIALISASI & SINKRONISASI GOOGLE SHEETS
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('cfgHotelName').value = config.hotelName;
+      document.getElementById('cfgScriptUrl').value = config.scriptUrl;
+      document.getElementById('cfgHodEmail').value  = config.hodEmail;
+      document.getElementById('cfgGmEmail').value   = config.gmEmail;
+
+      document.getElementById('emailToInput').value = config.hodEmail;
+      document.getElementById('emailCcInput').value = config.gmEmail;
+
+      syncAllData();
+    });
+
+    async function syncAllData() {
+      const icon = document.getElementById('syncIcon');
+      icon.classList.add('fa-spin');
+
+      if (!config.scriptUrl) {
+        // Mode Demo Lokal jika URL belum diisi
+        state.units  = JSON.parse(localStorage.getItem('demo_units'))  || getSampleUnits();
+        state.logs   = JSON.parse(localStorage.getItem('demo_logs'))   || [];
+        state.emails = JSON.parse(localStorage.getItem('demo_emails')) || [];
+        updateSyncStatus('amber', 'Mode Demo Lokal (Belum konek Sheet)');
+        renderAll();
+        icon.classList.remove('fa-spin');
+        return;
+      }
+
+      try {
+        updateSyncStatus('amber', 'Menyinkronkan...');
+        const res = await fetch(`${config.scriptUrl}?action=getAll`);
+        const data = await res.json();
+
+        state.units  = (data.units || []).map(normalizeUnitDates);
+        state.logs   = (data.logs || []).reverse();
+        state.emails = (data.emails || []).reverse();
+
+        updateSyncStatus('emerald', 'Terhubung Google Sheets');
+        renderAll();
+      } catch (err) {
+        console.error(err);
+        updateSyncStatus('rose', 'Gagal Konek Apps Script');
+        showToast('Gagal mengambil data dari Google Sheets. Periksa URL Web App.');
+      } finally {
+        icon.classList.remove('fa-spin');
+      }
+    }
+
+    function normalizeUnitDates(u) {
+      const cleanDate = (val) => {
+        if (!val) return '';
+        if (typeof val === 'string' && val.includes('T')) return val.split('T')[0];
+        return String(val);
+      };
+      return {
+        ...u,
+        intervalDays: Number(u.intervalDays) || 30,
+        lastPmDate: cleanDate(u.lastPmDate),
+        nextPmDate: cleanDate(u.nextPmDate)
+      };
+    }
+
+    function updateSyncStatus(color, text) {
+      const dot = document.getElementById('syncDot');
+      const lbl = document.getElementById('syncText');
+      dot.className = `w-2 h-2 rounded-full bg-${color}-400`;
+      lbl.textContent = text;
+    }
+
+    // =========================================================================
+    // HELPER STATUS JADWAL & PERHITUNGAN HARI
+    // =========================================================================
+    function getScheduleStatus(nextPmDateStr) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(nextPmDateStr);
+      target.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        return { code: 'OVERDUE', label: `Overdue (${Math.abs(diffDays)} hr)`, badge: 'bg-rose-100 text-rose-700 border-rose-200', diffDays };
+      } else if (diffDays <= 3) {
+        return { code: 'DUE_SOON', label: diffDays === 0 ? 'Hari Ini' : `H-${diffDays}`, badge: 'bg-amber-100 text-amber-700 border-amber-200', diffDays };
+      } else {
+        return { code: 'OK', label: `On Schedule (${diffDays} hr)`, badge: 'bg-emerald-100 text-emerald-700 border-emerald-200', diffDays };
+      }
+    }
+
+    function addDays(dateStr, days) {
+      const d = new Date(dateStr);
+      d.setDate(d.getDate() + Number(days));
+      return d.toISOString().split('T')[0];
+    }
+
+    // =========================================================================
+    // RENDER SEMUA KOMPONEN UI
+    // =========================================================================
+    function renderAll() {
+      renderDashboard();
+      renderUnitsTable();
+      renderLogsTable();
+      generateEmailPreview();
+      renderEmailHistory();
+    }
+
+    function renderDashboard() {
+      let total = state.units.length;
+      let healthy = 0, dueSoon = 0, overdue = 0;
+      const zoneStats = {};
+      const priorityItems = [];
+
+      state.units.forEach(u => {
+        const st = getScheduleStatus(u.nextPmDate);
+        if (st.code === 'OVERDUE') { overdue++; priorityItems.push({ ...u, st }); }
+        else if (st.code === 'DUE_SOON') { dueSoon++; priorityItems.push({ ...u, st }); }
+        else { healthy++; }
+
+        if (!zoneStats[u.zone]) zoneStats[u.zone] = { total: 0, ok: 0 };
+        zoneStats[u.zone].total++;
+        if (st.code === 'OK') zoneStats[u.zone].ok++;
+      });
+
+      document.getElementById('kpiTotal').textContent   = total;
+      document.getElementById('kpiHealthy').textContent = healthy;
+      document.getElementById('kpiDueSoon').textContent = dueSoon;
+      document.getElementById('kpiOverdue').textContent = overdue;
+
+      // Render Zone Progress
+      const zoneContainer = document.getElementById('zoneProgressContainer');
+      zoneContainer.innerHTML = Object.keys(zoneStats).length === 0
+        ? '<p class="text-xs text-slate-400">Belum ada data unit AC.</p>'
+        : Object.entries(zoneStats).map(([zone, val]) => {
+            const pct = Math.round((val.ok / val.total) * 100);
+            return `
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-700">${zone}</span>
+                  <span class="text-slate-500">${val.ok}/${val.total} On Schedule (${pct}%)</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div class="bg-amber-600 h-2 rounded-full transition-all" style="width: ${pct}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      // Render Priority List
+      priorityItems.sort((a, b) => a.st.diffDays - b.st.diffDays);
+      const prioEl = document.getElementById('priorityList');
+      prioEl.innerHTML = priorityItems.length === 0
+        ? '<div class="py-8 text-center text-xs text-slate-400"><i class="fa-solid fa-check-circle text-emerald-500 text-xl mb-2 block"></i>Semua unit AC dalam kondisi terjadwal baik.</div>'
+        : priorityItems.map(item => `
+            <div class="py-3 flex items-center justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-xs text-slate-800">${item.code}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full border font-semibold ${item.st.badge}">${item.st.label}</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-0.5">${item.name} • <span class="text-slate-400">${item.location}</span></p>
+              </div>
+              <button onclick="openPmModal('${item.id}')" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-700 text-white text-[11px] font-medium rounded-lg">
+                Kerjakan
+              </button>
+            </div>
+          `).join('');
+    }
+
+    function renderUnitsTable() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const zFilter = document.getElementById('zoneFilter').value;
+      const sFilter = document.getElementById('statusFilter').value;
+
+      const filtered = state.units.filter(u => {
+        const st = getScheduleStatus(u.nextPmDate);
+        const matchText = `${u.code} ${u.name} ${u.location} ${u.pic}`.toLowerCase().includes(q);
+        const matchZone = zFilter === 'ALL' || u.zone === zFilter;
+        const matchStat = sFilter === 'ALL' || st.code === sFilter;
+        return matchText && matchZone && matchStat;
+      });
+
+      const tbody = document.getElementById('unitsTableBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">Tidak ada unit AC yang sesuai filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const st = getScheduleStatus(u.nextPmDate);
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-800">${u.code}</div>
+              <div class="text-slate-500">${u.name}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-medium text-slate-700">${u.zone}</div>
+              <div class="text-slate-400">${u.location}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="text-slate-700">${u.type} (${u.brand})</div>
+              <div class="text-slate-400">${u.btu} • Tiap ${u.intervalDays} hr</div>
+            </td>
+            <td class="py-3 px-4 text-slate-600">${u.lastPmDate}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800">${u.nextPmDate}</td>
+            <td class="py-3 px-4 text-slate-600">${u.pic}</td>
+            <td class="py-3 px-4">
+              <span class="text-[11px] px-2.5 py-1 rounded-full border font-semibold ${st.badge}">${st.label}</span>
+            </td>
+            <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
+              <button onclick="openPmModal('${u.id}')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-medium" title="Eksekusi PM">
+                <i class="fa-solid fa-wrench mr-1"></i> PM
+              </button>
+              <button onclick="openUnitModal('${u.id}')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md" title="Edit Unit">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logsTableBody');
+      if (state.logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Belum ada riwayat pengerjaan PM tercatat.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = state.logs.map(l => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-3 px-3 font-medium text-slate-700 whitespace-nowrap">${String(l.date).split('T')[0]}</td>
+          <td class="py-3 px-3"><span class="font-bold text-slate-800">${l.unitCode}</span><br><span class="text-slate-500">${l.unitName}</span></td>
+          <td class="py-3 px-3 text-slate-700">${l.technician}</td>
+          <td class="py-3 px-3 text-slate-600">
+            Freon: <b>${l.pressurePsi}</b> | Amp: <b>${l.currentAmp}</b> | Supply: <b>${l.supplyTemp}</b>
+          </td>
+          <td class="py-3 px-3 text-slate-600 max-w-xs">${l.checklistSummary}</td>
+          <td class="py-3 px-3 text-slate-500">${l.notes || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================================================
+    // CRUD UNIT AC & EKSEKUSI PM
+    // =========================================================================
+    function openUnitModal(unitId = null) {
+      const modal = document.getElementById('unitModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      if (unitId) {
+        const u = state.units.find(x => x.id === unitId);
+        document.getElementById('unitModalTitle').textContent = `Edit Unit ${u.code}`;
+        document.getElementById('fUnitId').value   = u.id;
+        document.getElementById('fCode').value     = u.code;
+        document.getElementById('fName').value     = u.name;
+        document.getElementById('fZone').value     = u.zone;
+        document.getElementById('fLocation').value = u.location;
+        document.getElementById('fType').value     = u.type;
+        document.getElementById('fBrand').value    = u.brand;
+        document.getElementById('fBtu').value      = u.btu;
+        document.getElementById('fInterval').value = u.intervalDays;
+        document.getElementById('fLastPm').value   = u.lastPmDate;
+        document.getElementById('fPic').value      = u.pic;
+      } else {
+        document.getElementById('unitModalTitle').textContent = 'Tambah Unit AC Baru';
+        document.getElementById('unitForm').reset();
+        document.getElementById('fUnitId').value = '';
+        document.getElementById('fLastPm').value = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    function closeUnitModal() {
+      const modal = document.getElementById('unitModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function handleSaveUnit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSaveUnit');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      const existingId = document.getElementById('fUnitId').value;
+      const lastPm = document.getElementById('fLastPm').value;
+      const interval = Number(document.getElementById('fInterval').value);
+
+      const unitObj = {
+        id: existingId || 'U-' + Date.now(),
+        code: document.getElementById('fCode').value.trim(),
+        name: document.getElementById('fName').value.trim(),
+        zone: document.getElementById('fZone').value,
+        location: document.getElementById('fLocation').value.trim(),
+        type: document.getElementById('fType').value,
+        brand: document.getElementById('fBrand').value.trim() || '-',
+        btu: document.getElementById('fBtu').value.trim() || '-',
+        intervalDays: interval,
+        lastPmDate: lastPm,
+        nextPmDate: addDays(lastPm, interval),
+        pic: document.getElementById('fPic').value.trim(),
+        status: 'Active'
+      };
+
+      await persistUnit(unitObj);
+      btn.disabled = false;
+      btn.textContent = 'Simpan Unit';
+      closeUnitModal();
+      showToast(`Unit ${unitObj.code} berhasil disimpan.`);
+    }
+
+    async function persistUnit(unitObj) {
+      const idx = state.units.findIndex(x => x.id === unitObj.id);
+      if (idx > -1) state.units[idx] = unitObj;
+      else state.units.push(unitObj);
+
+      if (!config.scriptUrl) {
+        localStorage.setItem('demo_units', JSON.stringify(state.units));
+        renderAll();
+        return;
+      }
+
+      await fetch(config.scriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'saveUnit', unit: unitObj })
+      });
+      renderAll();
+    }
+
+    // Modal Eksekusi PM
+    function openPmModal(unitId) {
+      const u = state.units.find(x => x.id === unitId);
+      if (!u) return;
+      document.getElementById('pmUnitId').value = u.id;
+      document.getElementById('pmModalSubtitle').textContent = `${u.code} — ${u.name} (${u.location})`;
+      document.getElementById('pmDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('pmTech').value = u.pic;
+      document.getElementById('pmPsi').value = '';
+      document.getElementById('pmAmp').value = '';
+      document.getElementById('pmTemp').value = '';
+      document.getElementById('pmNotes').value = '';
+
+      const modal = document.getElementById('pmModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closePmModal() {
+      const modal = document.getElementById('pmModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function handleSubmitPM(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitPm');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan Log...';
+
+      const unitId = document.getElementById('pmUnitId').value;
+      const u = state.units.find(x => x.id === unitId);
+      const pmDate = document.getElementById('pmDate').value;
+      const checks = Array.from(document.querySelectorAll('.pm-chk:checked')).map(c => c.value);
+
+      const logObj = {
+        logId: 'LOG-' + Date.now(),
+        unitCode: u.code,
+        unitName: u.name,
+        date: pmDate,
+        technician: document.getElementById('pmTech').value.trim(),
+        pressurePsi: document.getElementById('pmPsi').value.trim(),
+        currentAmp: document.getElementById('pmAmp').value.trim(),
+        supplyTemp: document.getElementById('pmTemp').value.trim(),
+        checklistSummary: checks.join(', ') || 'Standard Check',
+        notes: document.getElementById('pmNotes').value.trim()
+      };
+
+      // Update jadwal berikutnya pada unit
+      const updatedUnit = {
+        ...u,
+        lastPmDate: pmDate,
+        nextPmDate: addDays(pmDate, u.intervalDays)
+      };
+
+      state.logs.unshift(logObj);
+
+      if (!config.scriptUrl) {
+        localStorage.setItem('demo_logs', JSON.stringify(state.logs));
+        await persistUnit(updatedUnit);
+      } else {
+        await fetch(config.scriptUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'submitPM', log: logObj })
+        });
+        await persistUnit(updatedUnit);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Selesaikan PM & Update Jadwal';
+      closePmModal();
+      showToast(`PM ${u.code} selesai! Jadwal berikutnya: ${updatedUnit.nextPmDate}`);
+    }
+
+    // =========================================================================
+    // NOTIFIKASI EMAIL TO: HOD ENGINEERING & CC: GENERAL MANAGER
+    // =========================================================================
+    function buildEmailPayload() {
+      const reportType = document.getElementById('emailReportType').value;
+      const toEmail = document.getElementById('emailToInput').value.trim();
+      const ccEmail = document.getElementById('emailCcInput').value.trim();
+      const customNote = document.getElementById('emailCustomNote').value.trim();
+      const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+      let targetUnits = state.units.map(u => ({ ...u, st: getScheduleStatus(u.nextPmDate) }));
+      if (reportType === 'ALERT_DUE') {
+        targetUnits = targetUnits.filter(u => u.st.code === 'OVERDUE' || u.st.code === 'DUE_SOON');
+      }
+
+      const subject = reportType === 'ALERT_DUE'
+        ? `[ENGINEERING ALERT] Laporan PM AC Overdue & Due Soon (${targetUnits.length} Unit) - ${config.hotelName}`
+        : `[MONTHLY HVAC REPORT] Rekap Status Preventive Maintenance AC - ${config.hotelName}`;
+
+      const rowsHtml = targetUnits.length === 0
+        ? `<tr><td colspan="6" style="padding:10px;text-align:center;color:#64748b;">Tidak ada unit AC yang jatuh tempo / overdue saat ini.</td></tr>`
+        : targetUnits.map(u => {
+            const color = u.st.code === 'OVERDUE' ? '#dc2626' : (u.st.code === 'DUE_SOON' ? '#d97706' : '#059669');
+            return `
+              <tr>
+                <td style="padding:8px;border:1px solid #cbd5e1;"><b>${u.code}</b></td>
+                <td style="padding:8px;border:1px solid #cbd5e1;">${u.name}<br><small style="color:#64748b;">${u.location}</small></td>
+                <td style="padding:8px;border:1px solid #cbd5e1;">${u.zone}</td>
+                <td style="padding:8px;border:1px solid #cbd5e1;">${u.nextPmDate}</td>
+                <td style="padding:8px;border:1px solid #cbd5e1;">${u.pic}</td>
+                <td style="padding:8px;border:1px solid #cbd5e1;color:${color};font-weight:bold;">${u.st.label}</td>
+              </tr>
+            `;
+          }).join('');
+
+      const htmlBody = `
+        <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:720px;line-height:1.5;">
+          <div style="background:#0f172a;color:#ffffff;padding:16px 20px;border-bottom:4px solid #d97706;">
+            <h2 style="margin:0;font-size:16px;letter-spacing:0.5px;">ENGINEERING DEPARTMENT — ${config.hotelName.toUpperCase()}</h2>
+            <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">Preventive Maintenance HVAC Escalation Report • ${todayStr}</p>
+          </div>
+          <div style="padding:20px;border:1px solid #e2e8f0;border-top:none;">
+            <p style="margin-top:0;">Yth. <b>Head of Department (HOD) Engineering</b>,<br>
+            Cc: <b>General Manager</b></p>
+            <p>Berikut kami sampaikan laporan status jadwal <i>Preventive Maintenance</i> (PM) unit Air Conditioning berdasarkan standar operasional hotel:</p>
+            ${customNote ? `<div style="background:#fffbeb;border-left:4px solid #d97706;padding:10px 14px;margin:12px 0;font-size:13px;"><b>Catatan Engineering:</b> ${customNote}</div>` : ''}
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin:16px 0;">
+              <thead>
+                <tr style="background:#f1f5f9;text-align:left;">
+                  <th style="padding:8px;border:1px solid #cbd5e1;">Kode</th>
+                  <th style="padding:8px;border:1px solid #cbd5e1;">Unit & Lokasi</th>
+                  <th style="padding:8px;border:1px solid #cbd5e1;">Zona</th>
+                  <th style="padding:8px;border:1px solid #cbd5e1;">Jadwal PM</th>
+                  <th style="padding:8px;border:1px solid #cbd5e1;">PIC</th>
+                  <th style="padding:8px;border:1px solid #cbd5e1;">Status</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+            <p style="font-size:12px;color:#475569;margin-bottom:0;">
+              Demikian laporan ini disampaikan untuk monitoring dan tindak lanjut tim Engineering.<br><br>
+              Hormat kami,<br>
+              <b>Engineering Administration System</b><br>
+              ${config.hotelName}
+            </p>
+          </div>
+        </div>
+      `;
+
+      return { toEmail, ccEmail, subject, htmlBody, reportType };
+    }
+
+    function generateEmailPreview() {
+      const payload = buildEmailPayload();
+      document.getElementById('prevTo').textContent = payload.toEmail || '-';
+      document.getElementById('prevCc').textContent = payload.ccEmail || '-';
+      document.getElementById('prevSubject').textContent = payload.subject;
+      document.getElementById('emailHtmlPreview').innerHTML = payload.htmlBody;
+    }
+
+    async function sendEmailNow() {
+      const payload = buildEmailPayload();
+      if (!payload.toEmail) {
+        showToast('Email HOD Engineering wajib diisi!');
+        return;
+      }
+
+      const btn = document.getElementById('btnSendServer');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Email...';
+
+      const historyItem = {
+        timestamp: new Date().toLocaleString('id-ID'),
+        type: payload.reportType,
+        toEmail: payload.toEmail,
+        ccEmail: payload.ccEmail,
+        subject: payload.subject,
+        status: config.scriptUrl ? 'SENT (SERVER)' : 'SIMULATED (DEMO)'
+      };
+
+      try {
+        if (config.scriptUrl) {
+          await fetch(config.scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'sendEmail',
+              ...payload
+            })
+          });
+          showToast('Email berhasil dikirim otomatis ke HOD (To) & GM (CC)!');
+        } else {
+          showToast('Mode Demo: Simulasi pengiriman email tercatat. Isi URL Apps Script untuk kirim email asli.');
+        }
+
+        state.emails.unshift(historyItem);
+        localStorage.setItem('demo_emails', JSON.stringify(state.emails));
+        renderEmailHistory();
+      } catch (err) {
+        showToast('Terjadi kesalahan saat mengirim email via server.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bolt text-amber-400"></i> Kirim Otomatis via Server Google';
+      }
+    }
+
+    function openMailtoFallback() {
+      const payload = buildEmailPayload();
+      const plainText = `Yth. HOD Engineering (CC: General Manager),\n\nMohon tinjau laporan status Preventive Maintenance AC ${config.hotelName} terlampir pada sistem HVAC Engineering.\n\nSubjek: ${payload.subject}`;
+      const mailto = `mailto:${encodeURIComponent(payload.toEmail)}?cc=${encodeURIComponent(payload.ccEmail)}&subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(plainText)}`;
+      window.open(mailto, '_blank');
+    }
+
+    function renderEmailHistory() {
+      const tbody = document.getElementById('emailHistoryBody');
+      if (state.emails.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Belum ada riwayat pengiriman notifikasi email.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = state.emails.map(e => `
+        <tr>
+          <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${e.timestamp}</td>
+          <td class="py-2.5 px-3 font-medium text-slate-700">${e.type}</td>
+          <td class="py-2.5 px-3 text-slate-700">${e.toEmail}</td>
+          <td class="py-2.5 px-3 text-slate-500">${e.ccEmail || '-'}</td>
+          <td class="py-2.5 px-3 text-slate-800">${e.subject}</td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">${e.status}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================================================
+    // PENGATURAN, EXPORT CSV & NAVIGASI TAB
+    // =========================================================================
+    function saveSettings() {
+      config.hotelName = document.getElementById('cfgHotelName').value.trim() || DEFAULT_HOTEL_NAME;
+      config.scriptUrl = document.getElementById('cfgScriptUrl').value.trim();
+      config.hodEmail  = document.getElementById('cfgHodEmail').value.trim()  || DEFAULT_HOD_EMAIL;
+      config.gmEmail   = document.getElementById('cfgGmEmail').value.trim()   || DEFAULT_GM_EMAIL;
+
+      localStorage.setItem('hvac_hotel_name', config.hotelName);
+      localStorage.setItem('hvac_script_url', config.scriptUrl);
+      localStorage.setItem('hvac_hod_email',  config.hodEmail);
+      localStorage.setItem('hvac_gm_email',   config.gmEmail);
+
+      document.getElementById('emailToInput').value = config.hodEmail;
+      document.getElementById('emailCcInput').value = config.gmEmail;
+
+      showToast('Konfigurasi disimpan. Menyinkronkan data...');
+      syncAllData();
+    }
+
+    async function seedDemoDataToSheet() {
+      const samples = getSampleUnits();
+      for (const u of samples) {
+        await persistUnit(u);
+      }
+      showToast('6 unit AC contoh berhasil ditambahkan!');
+    }
+
+    function exportCSV() {
+      const headers = ['Kode', 'Nama Unit', 'Zona', 'Lokasi', 'Tipe', 'Merk', 'Kapasitas', 'Interval (Hari)', 'PM Terakhir', 'Jadwal Berikutnya', 'PIC'];
+      const rows = state.units.map(u => [u.code, u.name, u.zone, u.location, u.type, u.brand, u.btu, u.intervalDays, u.lastPmDate, u.nextPmDate, u.pic]);
+      const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.map(v => `"${v}"`).join(",")).join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `Jadwal_PM_AC_Hotel_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('tab-active');
+        btn.classList.add('text-slate-600');
+      });
+      const activeBtn = document.getElementById(`nav-${tabName}`);
+      activeBtn.classList.add('tab-active');
+      activeBtn.classList.remove('text-slate-600');
+
+      if (tabName === 'email') generateEmailPreview();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
+    }
+  </script>
+</body>
+</html>
