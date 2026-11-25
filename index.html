@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ASTON Tanjungpinang PM System | 4-Star Hotel Engineering</title>
+  <title>HVAC PM System | 4-Star Hotel Engineering</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
@@ -35,11 +35,18 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <div id="syncBadge" class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Admin IT Lock/Unlock Button -->
+        <button onclick="toggleAdminAuth()" id="adminBadgeBtn" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition">
+          <i id="adminLockIcon" class="fa-solid fa-lock text-amber-400"></i>
+          <span id="adminBadgeText">Staff Mode</span>
+        </button>
+
+        <div id="syncBadge" class="hidden md:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
           <span id="syncDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
           <span id="syncText" class="text-slate-300">Menghubungkan...</span>
         </div>
+
         <button onclick="syncAllData()" title="Refresh dari Google Sheets" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
           <i id="syncIcon" class="fa-solid fa-rotate"></i>
         </button>
@@ -57,7 +64,7 @@
         <ul class="divide-y divide-slate-100 text-sm font-medium">
           <li>
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn tab-active w-full text-left px-4 py-3.5 flex items-center gap-3 transition">
-              <i class="fa-solid fa-chart-pie w-5 text-amber-500"></i> Dashboard & Zona
+              <i class="fa-solid fa-chart-pie w-5 text-amber-500"></i> Dashboard & KPI
             </button>
           </li>
           <li>
@@ -72,12 +79,13 @@
           </li>
           <li>
             <button onclick="switchTab('email')" id="nav-email" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition">
-              <i class="fa-solid fa-envelope-open-text w-5 text-slate-400"></i> Notifikasi HOD & GM
+              <i class="fa-solid fa-envelope-open-text w-5 text-slate-400"></i> Kirim Laporan HOD
             </button>
           </li>
-          <li>
-            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition">
-              <i class="fa-solid fa-gear w-5 text-slate-400"></i> Pengaturan & API
+          <!-- Menu Settings disembunyikan kecuali Admin IT login -->
+          <li id="nav-settings-item" class="hidden">
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full text-left px-4 py-3.5 flex items-center gap-3 text-amber-700 bg-amber-50/40 hover:bg-amber-50 transition">
+              <i class="fa-solid fa-shield-halved w-5 text-amber-600"></i> Pengaturan Admin IT
             </button>
           </li>
         </ul>
@@ -86,13 +94,13 @@
       <!-- Quick Escalation Card -->
       <div class="mt-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-4 card-shadow border border-slate-700">
         <div class="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase mb-1">
-          <i class="fa-solid fa-paper-plane"></i> Laporan Cepat Manajemen
+          <i class="fa-solid fa-paper-plane"></i> Laporan Manajemen
         </div>
         <p class="text-xs text-slate-300 leading-relaxed mb-3">
-          Kirim rekap status AC Overdue & Due Soon langsung ke email HOD Engineering (To) & General Manager (CC).
+          Kirim rekap KPI & status unit AC langsung ke HOD Engineering (dengan BCC otomatis ke General Manager).
         </p>
         <button onclick="switchTab('email')" class="w-full py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-lg transition shadow">
-          Buka Panel Notifikasi
+          Buka Panel Laporan
         </button>
       </div>
     </aside>
@@ -100,9 +108,46 @@
     <!-- Main Content Area -->
     <main class="flex-1 min-w-0">
 
-      <!-- TAB 1: DASHBOARD -->
+      <!-- TAB 1: DASHBOARD & 4-STAR KPI -->
       <section id="tab-dashboard" class="tab-content space-y-6">
-        <!-- KPI Cards -->
+        <!-- Executive KPI Scorecard Bar -->
+        <div class="bg-slate-900 text-white rounded-xl p-5 card-shadow border border-slate-800">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-800">
+            <div>
+              <span class="text-[10px] uppercase tracking-wider font-bold text-amber-400">4-Star Hospitality Standard</span>
+              <h2 class="text-base font-bold">Executive Engineering KPI Scorecard</h2>
+            </div>
+            <span class="text-xs text-slate-400">Target Kepatuhan: <b class="text-emerald-400">≥ 95.0%</b></span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-slate-800/80 p-4 rounded-lg border border-slate-700">
+              <p class="text-xs text-slate-400">PM Compliance Rate</p>
+              <div class="flex items-baseline justify-between mt-1">
+                <p id="kpiCompliancePct" class="text-2xl font-bold text-emerald-400">0%</p>
+                <span id="kpiComplianceStatus" class="text-[11px] px-2 py-0.5 rounded bg-slate-700 text-slate-300">-</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Rasio unit AC on-schedule vs total aset</p>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-lg border border-slate-700">
+              <p class="text-xs text-slate-400">Guest Area Readiness</p>
+              <div class="flex items-baseline justify-between mt-1">
+                <p id="kpiGuestReadinessPct" class="text-2xl font-bold text-amber-400">0%</p>
+                <span class="text-[11px] text-slate-400">Target: 100%</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Kesiapan Kamar Tamu, Lobby & Ballroom</p>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-lg border border-slate-700">
+              <p class="text-xs text-slate-400">Critical Overdue Risk</p>
+              <div class="flex items-baseline justify-between mt-1">
+                <p id="kpiOverduePct" class="text-2xl font-bold text-rose-400">0%</p>
+                <span class="text-[11px] text-slate-400">Target: 0%</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Persentase unit melewati jadwal PM</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operational KPI Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white p-4 rounded-xl card-shadow border border-slate-200">
             <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
@@ -128,7 +173,7 @@
               <i class="fa-solid fa-clock"></i>
             </div>
             <p id="kpiDueSoon" class="text-2xl font-bold text-amber-600 mt-2">0</p>
-            <p class="text-[11px] text-amber-700/70 mt-1">Jatuh tempo <= 3 hari</p>
+            <p class="text-[11px] text-amber-700/70 mt-1">Jatuh tempo ≤ 3 hari</p>
           </div>
 
           <div class="bg-white p-4 rounded-xl card-shadow border border-rose-200 bg-rose-50/30">
@@ -145,7 +190,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="bg-white p-5 rounded-xl card-shadow border border-slate-200">
             <h2 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
-              <i class="fa-solid fa-layer-group text-amber-600"></i> Kepatuhan PM per Zona Hotel
+              <i class="fa-solid fa-layer-group text-amber-600"></i> Kepatuhan PM per Zona Hotel (%)
             </h2>
             <div id="zoneProgressContainer" class="space-y-4"></div>
           </div>
@@ -243,44 +288,63 @@
         </div>
       </section>
 
-      <!-- TAB 4: EMAIL NOTIFICATION TO HOD & CC GM -->
+      <!-- TAB 4: EMAIL NOTIFICATION (PROTECTED RECIPIENTS FOR STAFF, EDITABLE ONLY BY ADMIN IT) -->
       <section id="tab-email" class="tab-content hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <!-- Control Panel -->
           <div class="lg:col-span-5 bg-white p-5 rounded-xl card-shadow border border-slate-200 space-y-4">
-            <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
-              <i class="fa-solid fa-paper-plane text-amber-600"></i> Kirim Laporan Manajemen
-            </h2>
+            <div class="flex items-center justify-between">
+              <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-amber-600"></i> Kirim Laporan Manajemen
+              </h2>
+              <span id="recipientLockBadge" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">
+                <i class="fa-solid fa-lock mr-1 text-amber-600"></i> Locked by Admin IT
+              </span>
+            </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Laporan Email</label>
               <select id="emailReportType" onchange="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white">
                 <option value="ALERT_DUE">Alert Unit Overdue & Due Soon (H-3)</option>
-                <option value="MONTHLY_RECAP">Rekap Kepatuhan PM Bulanan (All Units)</option>
+                <option value="MONTHLY_RECAP">Executive KPI & Rekap Bulanan (All Units)</option>
               </select>
             </div>
 
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">To: Email HOD Engineering</label>
-              <input type="email" id="emailToInput" oninput="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" placeholder="chief.engineering@hotel.com" />
+            <!-- Bagian Penerima Email: Hidden/Masked untuk Staff Biasa, Terlihat & Bisa Diedit Khusus Admin IT -->
+            <div id="staffHiddenRecipientNotice" class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1.5">
+              <div class="flex items-center justify-between text-slate-700 font-semibold">
+                <span><i class="fa-solid fa-user-shield text-amber-600 mr-1.5"></i>Tujuan Pengiriman Terkunci</span>
+                <button type="button" onclick="toggleAdminAuth()" class="text-[11px] text-amber-700 hover:underline font-medium">Buka via Admin IT</button>
+              </div>
+              <p class="text-[11px] text-slate-500">
+                <b>To:</b> HOD Engineering (Terkonfigurasi oleh IT)<br>
+                <b>BCC:</b> General Manager (Terkonfigurasi oleh IT)
+              </p>
+            </div>
+
+            <div id="adminRecipientInputs" class="hidden space-y-3 bg-amber-50/60 border border-amber-200 rounded-lg p-3">
+              <p class="text-[11px] font-bold text-amber-800 uppercase"><i class="fa-solid fa-unlock mr-1"></i> Akses Admin IT Aktif</p>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">To: Email HOD Engineering</label>
+                <input type="email" id="emailToInput" oninput="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white" placeholder="chief.engineering@hotel.com" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">BCC: Email General Manager (Blind CC)</label>
+                <input type="email" id="emailCcInput" oninput="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white" placeholder="gm@hotel.com" />
+              </div>
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">CC: Email General Manager</label>
-              <input type="email" id="emailCcInput" oninput="generateEmailPreview()" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" placeholder="gm@hotel.com" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan Chief / Admin</label>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan Chief / Supervisor</label>
               <textarea id="emailCustomNote" oninput="generateEmailPreview()" rows="2" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" placeholder="Contoh: Mohon approval pengadaan filter AHU Ballroom minggu ini..."></textarea>
             </div>
 
             <div class="pt-2 space-y-2">
               <button id="btnSendServer" onclick="sendEmailNow()" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2 shadow">
-                <i class="fa-solid fa-bolt text-amber-400"></i> Kirim Otomatis via Server Google
+                <i class="fa-solid fa-bolt text-amber-400"></i> Kirim Laporan Sekarang
               </button>
-              <button onclick="openMailtoFallback()" class="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka di Aplikasi Email (Fallback)
+              <button id="btnMailtoFallback" onclick="openMailtoFallback()" class="hidden w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition items-center justify-center gap-2">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka di Aplikasi Email (Admin IT)
               </button>
             </div>
           </div>
@@ -288,29 +352,29 @@
           <!-- Email Preview -->
           <div class="lg:col-span-7 bg-white rounded-xl card-shadow border border-slate-200 overflow-hidden flex flex-col">
             <div class="bg-slate-800 text-white px-4 py-3 text-xs flex items-center justify-between">
-              <span class="font-semibold"><i class="fa-solid fa-eye mr-1.5 text-amber-400"></i> Live Preview Email Manajemen</span>
-              <span class="text-slate-400">Format HTML Formal</span>
+              <span class="font-semibold"><i class="fa-solid fa-eye mr-1.5 text-amber-400"></i> Live Preview Laporan Manajemen</span>
+              <span class="text-slate-400">4-Star KPI Scorecard Format</span>
             </div>
             <div class="p-4 bg-slate-50 border-b border-slate-200 text-xs space-y-1">
               <div><span class="font-semibold text-slate-500 w-16 inline-block">To:</span> <span id="prevTo" class="text-slate-800 font-medium"></span></div>
-              <div><span class="font-semibold text-slate-500 w-16 inline-block">CC:</span> <span id="prevCc" class="text-slate-800 font-medium"></span></div>
+              <div><span class="font-semibold text-slate-500 w-16 inline-block">BCC:</span> <span id="prevCc" class="text-slate-800 font-medium"></span></div>
               <div><span class="font-semibold text-slate-500 w-16 inline-block">Subject:</span> <span id="prevSubject" class="text-slate-900 font-bold"></span></div>
             </div>
-            <div id="emailHtmlPreview" class="p-5 text-xs overflow-y-auto max-h-[420px] bg-white"></div>
+            <div id="emailHtmlPreview" class="p-5 text-xs overflow-y-auto max-h-[450px] bg-white"></div>
           </div>
         </div>
 
-        <!-- Audit Log Pengiriman Email -->
+        <!-- Audit Log Pengiriman Email (Alamat disamarkan untuk non-IT) -->
         <div class="bg-white p-5 rounded-xl card-shadow border border-slate-200">
-          <h3 class="font-bold text-slate-800 text-sm mb-3">Audit Trail Notifikasi Email Terkirim</h3>
+          <h3 class="font-bold text-slate-800 text-sm mb-3">Audit Trail Pengiriman Laporan</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
                 <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px]">
                   <th class="py-2.5 px-3">Waktu Kirim</th>
-                  <th class="py-2.5 px-3">Tipe</th>
+                  <th class="py-2.5 px-3">Tipe Laporan</th>
                   <th class="py-2.5 px-3">To (HOD)</th>
-                  <th class="py-2.5 px-3">CC (GM)</th>
+                  <th class="py-2.5 px-3">BCC (GM)</th>
                   <th class="py-2.5 px-3">Subjek</th>
                   <th class="py-2.5 px-3">Status</th>
                 </tr>
@@ -321,41 +385,50 @@
         </div>
       </section>
 
-      <!-- TAB 5: SETTINGS -->
+      <!-- TAB 5: SETTINGS (ADMIN IT ONLY) -->
       <section id="tab-settings" class="tab-content hidden">
-        <div class="bg-white p-6 rounded-xl card-shadow border border-slate-200 max-w-2xl space-y-5">
-          <div>
-            <h2 class="font-bold text-slate-800 text-base">Konfigurasi Database Google Sheets & Penerima Email</h2>
-            <p class="text-xs text-slate-500 mt-1">Hubungkan aplikasi Vercel ini dengan Google Apps Script Web App Anda.</p>
+        <div class="bg-white p-6 rounded-xl card-shadow border border-amber-200 max-w-2xl space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600">Restricted Area — IT Department</span>
+              <h2 class="font-bold text-slate-800 text-base">Konfigurasi Database & Penerima Email Manajemen</h2>
+            </div>
+            <button onclick="logoutAdmin()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold">
+              <i class="fa-solid fa-lock mr-1"></i> Kunci Kembali
+            </button>
           </div>
 
           <div class="space-y-4 text-xs">
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Nama Properti / Hotel</label>
-              <input type="text" id="cfgHotelName" class="w-full border border-slate-300 rounded-lg px-3 py-2" placeholder="Grand Aurelia Hotel & Convention" />
+              <input type="text" id="cfgHotelName" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
             </div>
 
             <div>
               <label class="block font-semibold text-slate-700 mb-1">Google Apps Script Web App URL (<code class="text-amber-600">/exec</code>)</label>
               <input type="url" id="cfgScriptUrl" class="w-full border border-slate-300 rounded-lg px-3 py-2 font-mono text-[11px]" placeholder="https://script.google.com/macros/s/AKfycb.../exec" />
-              <p class="text-[11px] text-slate-400 mt-1">Kosongkan jika ingin mencoba mode Demo Lokal terlebih dahulu.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block font-semibold text-slate-700 mb-1">Default Email HOD Engineering (To)</label>
-                <input type="email" id="cfgHodEmail" class="w-full border border-slate-300 rounded-lg px-3 py-2" placeholder="chief.engineering@hotel.com" />
+                <label class="block font-semibold text-slate-700 mb-1">Email HOD Engineering (To)</label>
+                <input type="email" id="cfgHodEmail" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
               </div>
               <div>
-                <label class="block font-semibold text-slate-700 mb-1">Default Email General Manager (CC)</label>
-                <input type="email" id="cfgGmEmail" class="w-full border border-slate-300 rounded-lg px-3 py-2" placeholder="gm@hotel.com" />
+                <label class="block font-semibold text-slate-700 mb-1">Email General Manager (BCC)</label>
+                <input type="email" id="cfgGmEmail" class="w-full border border-slate-300 rounded-lg px-3 py-2" />
               </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Ubah PIN Akses Admin IT</label>
+              <input type="password" id="cfgAdminPin" class="w-full sm:w-1/2 border border-slate-300 rounded-lg px-3 py-2" placeholder="Masukkan PIN baru..." />
             </div>
           </div>
 
-          <div class="pt-2 flex items-center gap-3">
+          <div class="pt-2 flex flex-wrap items-center gap-3">
             <button onclick="saveSettings()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition">
-              Simpan & Sinkronkan
+              Simpan Konfigurasi IT
             </button>
             <button onclick="seedDemoDataToSheet()" class="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-lg transition">
               Isi Data Awal Hotel (6 Unit Sample)
@@ -365,6 +438,26 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- MODAL ADMIN IT PIN LOGIN -->
+  <div id="adminPinModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-amber-600"></i> Verifikasi Admin IT
+        </h3>
+        <button onclick="closePinModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="verifyAdminPin(event)" class="space-y-3 text-xs">
+        <p class="text-slate-600">Masukkan PIN Admin IT untuk membuka pengaturan email HOD, BCC GM, dan koneksi database.</p>
+        <input type="password" id="pinInputField" required placeholder="Masukkan PIN IT..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-center font-mono tracking-widest text-sm focus:outline-none focus:border-amber-500" />
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closePinModal()" class="px-3.5 py-2 bg-slate-100 rounded-lg font-medium">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg font-semibold">Buka Akses</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- MODAL 1: ADD / EDIT AC UNIT -->
@@ -516,19 +609,22 @@
 
   <script>
     // =========================================================================
-    // KONFIGURASI DEFAULT (Bisa diisi permanen di sini atau lewat menu Settings)
+    // KONFIGURASI DEFAULT & PIN ADMIN IT
     // =========================================================================
-    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRTiXXl8eeG220p3T-tH3LqwxecX9YEGBtVs6mIEVYLSU7hZq6hbT0pX4prJDPpcfJuQ/exec"; // Tempel URL /exec Google Apps Script Anda di sini
-    const DEFAULT_HOTEL_NAME = "Aston Tanjungpinang Hotels";
-    const DEFAULT_HOD_EMAIL  = "tanjungpinangaitm@astonhotelsinternational.com";
-    const DEFAULT_GM_EMAIL   = "itm.astontpi@gmail.com";
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxMOEVU0u3CuPXcCdt5AQY1glwAh0z0HPXu2k41p-t5WWQezzI25wQJm34gT9fr7pQYA/exec"; // Tempel URL /exec Google Apps Script Anda di sini
+    const DEFAULT_HOTEL_NAME = "Aston Tanjungpinang Hotel (4-Star)";
+    const DEFAULT_HOD_EMAIL  = "chief.engineering@grandaurelia.com";
+    const DEFAULT_GM_EMAIL   = "gm@grandaurelia.com";
+    const DEFAULT_ADMIN_PIN  = "IT2026"; // PIN Default Admin IT
 
-    // State Aplikasi
+    let isAdminIT = false;
+
     let config = {
       scriptUrl: localStorage.getItem('hvac_script_url') || DEFAULT_SCRIPT_URL,
       hotelName: localStorage.getItem('hvac_hotel_name') || DEFAULT_HOTEL_NAME,
       hodEmail:  localStorage.getItem('hvac_hod_email')  || DEFAULT_HOD_EMAIL,
-      gmEmail:   localStorage.getItem('hvac_gm_email')   || DEFAULT_GM_EMAIL
+      gmEmail:   localStorage.getItem('hvac_gm_email')   || DEFAULT_GM_EMAIL,
+      adminPin:  localStorage.getItem('hvac_admin_pin')  || DEFAULT_ADMIN_PIN
     };
 
     let state = {
@@ -537,7 +633,101 @@
       emails: []
     };
 
-    // Data Sample Bawaan (Digunakan jika belum terhubung ke Google Sheets)
+    // =========================================================================
+    // KONTROL HAK AKSES ADMIN IT (HIDE/SHOW EMAIL HOD & BCC GM)
+    // =========================================================================
+    function toggleAdminAuth() {
+      if (isAdminIT) {
+        logoutAdmin();
+      } else {
+        document.getElementById('pinInputField').value = '';
+        const modal = document.getElementById('adminPinModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => document.getElementById('pinInputField').focus(), 100);
+      }
+    }
+
+    function closePinModal() {
+      const modal = document.getElementById('adminPinModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function verifyAdminPin(e) {
+      e.preventDefault();
+      const inputPin = document.getElementById('pinInputField').value;
+      if (inputPin === config.adminPin) {
+        isAdminIT = true;
+        closePinModal();
+        applyRoleVisibility();
+        showToast('Akses Admin IT dibuka. Pengaturan email & database aktif.');
+      } else {
+        showToast('PIN Admin IT salah! Akses ditolak.');
+      }
+    }
+
+    function logoutAdmin() {
+      isAdminIT = false;
+      applyRoleVisibility();
+      if (!document.getElementById('tab-settings').classList.contains('hidden')) {
+        switchTab('dashboard');
+      }
+      showToast('Mode dikembalikan ke Staff (Pengaturan dikunci).');
+    }
+
+    function applyRoleVisibility() {
+      const badgeBtn  = document.getElementById('adminBadgeBtn');
+      const lockIcon  = document.getElementById('adminLockIcon');
+      const badgeText = document.getElementById('adminBadgeText');
+      const navSet    = document.getElementById('nav-settings-item');
+
+      const staffNotice = document.getElementById('staffHiddenRecipientNotice');
+      const adminInputs = document.getElementById('adminRecipientInputs');
+      const lockBadge   = document.getElementById('recipientLockBadge');
+      const mailtoBtn   = document.getElementById('btnMailtoFallback');
+
+      if (isAdminIT) {
+        badgeBtn.classList.replace('bg-slate-800', 'bg-amber-600');
+        badgeBtn.classList.replace('text-slate-300', 'text-white');
+        lockIcon.className = 'fa-solid fa-unlock text-white';
+        badgeText.textContent = 'Admin IT Active';
+        navSet.classList.remove('hidden');
+
+        staffNotice.classList.add('hidden');
+        adminInputs.classList.remove('hidden');
+        lockBadge.innerHTML = '<i class="fa-solid fa-unlock mr-1 text-emerald-600"></i> Admin IT Unlocked';
+        lockBadge.className = 'text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold';
+        mailtoBtn.classList.remove('hidden');
+        mailtoBtn.classList.add('flex');
+      } else {
+        badgeBtn.classList.replace('bg-amber-600', 'bg-slate-800');
+        badgeBtn.classList.replace('text-white', 'text-slate-300');
+        lockIcon.className = 'fa-solid fa-lock text-amber-400';
+        badgeText.textContent = 'Staff Mode';
+        navSet.classList.add('hidden');
+
+        staffNotice.classList.remove('hidden');
+        adminInputs.classList.add('hidden');
+        lockBadge.innerHTML = '<i class="fa-solid fa-lock mr-1 text-amber-600"></i> Locked by Admin IT';
+        lockBadge.className = 'text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold';
+        mailtoBtn.classList.add('hidden');
+        mailtoBtn.classList.remove('flex');
+      }
+
+      generateEmailPreview();
+      renderEmailHistory();
+    }
+
+    function maskEmail(email) {
+      if (!email || !email.includes('@')) return '••••••••@••••.com';
+      const [user, domain] = email.split('@');
+      return `${user.slice(0, 2)}••••@${domain}`;
+    }
+
+    // =========================================================================
+    // DATA SAMPLE & SINKRONISASI GOOGLE SHEETS
+    // =========================================================================
     function getSampleUnits() {
       const today = new Date();
       const fmt = (offset) => {
@@ -555,9 +745,6 @@
       ];
     }
 
-    // =========================================================================
-    // INISIALISASI & SINKRONISASI GOOGLE SHEETS
-    // =========================================================================
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('cfgHotelName').value = config.hotelName;
       document.getElementById('cfgScriptUrl').value = config.scriptUrl;
@@ -567,6 +754,7 @@
       document.getElementById('emailToInput').value = config.hodEmail;
       document.getElementById('emailCcInput').value = config.gmEmail;
 
+      applyRoleVisibility();
       syncAllData();
     });
 
@@ -575,11 +763,10 @@
       icon.classList.add('fa-spin');
 
       if (!config.scriptUrl) {
-        // Mode Demo Lokal jika URL belum diisi
         state.units  = JSON.parse(localStorage.getItem('demo_units'))  || getSampleUnits();
         state.logs   = JSON.parse(localStorage.getItem('demo_logs'))   || [];
         state.emails = JSON.parse(localStorage.getItem('demo_emails')) || [];
-        updateSyncStatus('amber', 'Mode Demo Lokal (Belum konek Sheet)');
+        updateSyncStatus('amber', 'Mode Demo Lokal');
         renderAll();
         icon.classList.remove('fa-spin');
         return;
@@ -594,12 +781,12 @@
         state.logs   = (data.logs || []).reverse();
         state.emails = (data.emails || []).reverse();
 
-        updateSyncStatus('emerald', 'Terhubung Google Sheets');
+        updateSyncStatus('emerald', 'Terhubung Sheets');
         renderAll();
       } catch (err) {
         console.error(err);
-        updateSyncStatus('rose', 'Gagal Konek Apps Script');
-        showToast('Gagal mengambil data dari Google Sheets. Periksa URL Web App.');
+        updateSyncStatus('rose', 'Gagal Konek');
+        showToast('Gagal mengambil data dari Google Sheets.');
       } finally {
         icon.classList.remove('fa-spin');
       }
@@ -620,15 +807,10 @@
     }
 
     function updateSyncStatus(color, text) {
-      const dot = document.getElementById('syncDot');
-      const lbl = document.getElementById('syncText');
-      dot.className = `w-2 h-2 rounded-full bg-${color}-400`;
-      lbl.textContent = text;
+      document.getElementById('syncDot').className = `w-2 h-2 rounded-full bg-${color}-400`;
+      document.getElementById('syncText').textContent = text;
     }
 
-    // =========================================================================
-    // HELPER STATUS JADWAL & PERHITUNGAN HARI
-    // =========================================================================
     function getScheduleStatus(nextPmDateStr) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -652,8 +834,33 @@
     }
 
     // =========================================================================
-    // RENDER SEMUA KOMPONEN UI
+    // KALKULASI KPI BINTANG 4 & RENDER DASHBOARD
     // =========================================================================
+    function calculateKpiMetrics() {
+      const total = state.units.length;
+      let healthy = 0, dueSoon = 0, overdue = 0;
+      let guestTotal = 0, guestOk = 0;
+      const guestZones = ['Guest Rooms', 'Lobby & Public Area', 'Ballroom & Meeting'];
+
+      state.units.forEach(u => {
+        const st = getScheduleStatus(u.nextPmDate);
+        if (st.code === 'OVERDUE') overdue++;
+        else if (st.code === 'DUE_SOON') dueSoon++;
+        else healthy++;
+
+        if (guestZones.includes(u.zone)) {
+          guestTotal++;
+          if (st.code !== 'OVERDUE') guestOk++;
+        }
+      });
+
+      const compliancePct = total > 0 ? ((healthy / total) * 100).toFixed(1) : '0.0';
+      const guestReadyPct = guestTotal > 0 ? ((guestOk / guestTotal) * 100).toFixed(1) : '100.0';
+      const overduePct    = total > 0 ? ((overdue / total) * 100).toFixed(1) : '0.0';
+
+      return { total, healthy, dueSoon, overdue, compliancePct, guestReadyPct, overduePct };
+    }
+
     function renderAll() {
       renderDashboard();
       renderUnitsTable();
@@ -663,28 +870,40 @@
     }
 
     function renderDashboard() {
-      let total = state.units.length;
-      let healthy = 0, dueSoon = 0, overdue = 0;
+      const m = calculateKpiMetrics();
       const zoneStats = {};
       const priorityItems = [];
 
       state.units.forEach(u => {
         const st = getScheduleStatus(u.nextPmDate);
-        if (st.code === 'OVERDUE') { overdue++; priorityItems.push({ ...u, st }); }
-        else if (st.code === 'DUE_SOON') { dueSoon++; priorityItems.push({ ...u, st }); }
-        else { healthy++; }
+        if (st.code === 'OVERDUE' || st.code === 'DUE_SOON') priorityItems.push({ ...u, st });
 
         if (!zoneStats[u.zone]) zoneStats[u.zone] = { total: 0, ok: 0 };
         zoneStats[u.zone].total++;
         if (st.code === 'OK') zoneStats[u.zone].ok++;
       });
 
-      document.getElementById('kpiTotal').textContent   = total;
-      document.getElementById('kpiHealthy').textContent = healthy;
-      document.getElementById('kpiDueSoon').textContent = dueSoon;
-      document.getElementById('kpiOverdue').textContent = overdue;
+      // Executive Scorecard
+      document.getElementById('kpiCompliancePct').textContent     = `${m.compliancePct}%`;
+      document.getElementById('kpiGuestReadinessPct').textContent = `${m.guestReadyPct}%`;
+      document.getElementById('kpiOverduePct').textContent        = `${m.overduePct}%`;
 
-      // Render Zone Progress
+      const compBadge = document.getElementById('kpiComplianceStatus');
+      if (Number(m.compliancePct) >= 95) {
+        compBadge.textContent = 'PASS (4-Star)';
+        compBadge.className = 'text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold';
+      } else {
+        compBadge.textContent = 'BELOW TARGET';
+        compBadge.className = 'text-[11px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-semibold';
+      }
+
+      // Operational Counters
+      document.getElementById('kpiTotal').textContent   = m.total;
+      document.getElementById('kpiHealthy').textContent = m.healthy;
+      document.getElementById('kpiDueSoon').textContent = m.dueSoon;
+      document.getElementById('kpiOverdue').textContent = m.overdue;
+
+      // Zone Progress
       const zoneContainer = document.getElementById('zoneProgressContainer');
       zoneContainer.innerHTML = Object.keys(zoneStats).length === 0
         ? '<p class="text-xs text-slate-400">Belum ada data unit AC.</p>'
@@ -694,7 +913,7 @@
               <div>
                 <div class="flex justify-between text-xs mb-1">
                   <span class="font-semibold text-slate-700">${zone}</span>
-                  <span class="text-slate-500">${val.ok}/${val.total} On Schedule (${pct}%)</span>
+                  <span class="text-slate-500">${val.ok}/${val.total} Unit (<b>${pct}%</b>)</span>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                   <div class="bg-amber-600 h-2 rounded-full transition-all" style="width: ${pct}%"></div>
@@ -703,7 +922,7 @@
             `;
           }).join('');
 
-      // Render Priority List
+      // Priority List
       priorityItems.sort((a, b) => a.st.diffDays - b.st.diffDays);
       const prioEl = document.getElementById('priorityList');
       prioEl.innerHTML = priorityItems.length === 0
@@ -885,7 +1104,6 @@
       renderAll();
     }
 
-    // Modal Eksekusi PM
     function openPmModal(unitId) {
       const u = state.units.find(x => x.id === unitId);
       if (!u) return;
@@ -933,7 +1151,6 @@
         notes: document.getElementById('pmNotes').value.trim()
       };
 
-      // Update jadwal berikutnya pada unit
       const updatedUnit = {
         ...u,
         lastPmDate: pmDate,
@@ -960,14 +1177,15 @@
     }
 
     // =========================================================================
-    // NOTIFIKASI EMAIL TO: HOD ENGINEERING & CC: GENERAL MANAGER
+    // NOTIFIKASI EMAIL TO: HOD ENGINEERING & BCC: GENERAL MANAGER
     // =========================================================================
     function buildEmailPayload() {
       const reportType = document.getElementById('emailReportType').value;
-      const toEmail = document.getElementById('emailToInput').value.trim();
-      const ccEmail = document.getElementById('emailCcInput').value.trim();
+      const toEmail  = (isAdminIT ? document.getElementById('emailToInput').value.trim() : config.hodEmail) || config.hodEmail;
+      const bccEmail = (isAdminIT ? document.getElementById('emailCcInput').value.trim() : config.gmEmail)  || config.gmEmail;
       const customNote = document.getElementById('emailCustomNote').value.trim();
       const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const m = calculateKpiMetrics();
 
       let targetUnits = state.units.map(u => ({ ...u, st: getScheduleStatus(u.nextPmDate) }));
       if (reportType === 'ALERT_DUE') {
@@ -976,7 +1194,7 @@
 
       const subject = reportType === 'ALERT_DUE'
         ? `[ENGINEERING ALERT] Laporan PM AC Overdue & Due Soon (${targetUnits.length} Unit) - ${config.hotelName}`
-        : `[MONTHLY HVAC REPORT] Rekap Status Preventive Maintenance AC - ${config.hotelName}`;
+        : `[EXECUTIVE KPI REPORT] Status Preventive Maintenance AC (${m.compliancePct}% Compliance) - ${config.hotelName}`;
 
       const rowsHtml = targetUnits.length === 0
         ? `<tr><td colspan="6" style="padding:10px;text-align:center;color:#64748b;">Tidak ada unit AC yang jatuh tempo / overdue saat ini.</td></tr>`
@@ -998,13 +1216,35 @@
         <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:720px;line-height:1.5;">
           <div style="background:#0f172a;color:#ffffff;padding:16px 20px;border-bottom:4px solid #d97706;">
             <h2 style="margin:0;font-size:16px;letter-spacing:0.5px;">ENGINEERING DEPARTMENT — ${config.hotelName.toUpperCase()}</h2>
-            <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">Preventive Maintenance HVAC Escalation Report • ${todayStr}</p>
+            <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">4-Star Hotel HVAC Preventive Maintenance Report • ${todayStr}</p>
           </div>
           <div style="padding:20px;border:1px solid #e2e8f0;border-top:none;">
-            <p style="margin-top:0;">Yth. <b>Head of Department (HOD) Engineering</b>,<br>
-            Cc: <b>General Manager</b></p>
-            <p>Berikut kami sampaikan laporan status jadwal <i>Preventive Maintenance</i> (PM) unit Air Conditioning berdasarkan standar operasional hotel:</p>
+            <p style="margin-top:0;">Yth. <b>Head of Department (HOD) Engineering</b>,</p>
+            <p>Berikut ringkasan performa KPI & status jadwal <i>Preventive Maintenance</i> (PM) unit Air Conditioning hotel:</p>
+            
+            <!-- 4-Star KPI Summary Table inside Email -->
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin:14px 0;background:#f8fafc;">
+              <tr>
+                <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;">
+                  <div style="color:#64748b;font-size:11px;">PM Compliance Rate</div>
+                  <div style="font-size:18px;font-weight:bold;color:#0f172a;">${m.compliancePct}%</div>
+                  <div style="font-size:10px;color:#059669;">Target Bintang 4: ≥ 95%</div>
+                </td>
+                <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;">
+                  <div style="color:#64748b;font-size:11px;">Guest Area Readiness</div>
+                  <div style="font-size:18px;font-weight:bold;color:#0f172a;">${m.guestReadyPct}%</div>
+                  <div style="font-size:10px;color:#d97706;">Kamar, Lobby & Ballroom</div>
+                </td>
+                <td style="padding:10px;border:1px solid #cbd5e1;text-align:center;">
+                  <div style="color:#64748b;font-size:11px;">Overdue / Due Soon</div>
+                  <div style="font-size:18px;font-weight:bold;color:#dc2626;">${m.overdue} / ${m.dueSoon} Unit</div>
+                  <div style="font-size:10px;color:#64748b;">Dari Total ${m.total} Unit</div>
+                </td>
+              </tr>
+            </table>
+
             ${customNote ? `<div style="background:#fffbeb;border-left:4px solid #d97706;padding:10px 14px;margin:12px 0;font-size:13px;"><b>Catatan Engineering:</b> ${customNote}</div>` : ''}
+            
             <table style="width:100%;border-collapse:collapse;font-size:12px;margin:16px 0;">
               <thead>
                 <tr style="background:#f1f5f9;text-align:left;">
@@ -1019,7 +1259,7 @@
               <tbody>${rowsHtml}</tbody>
             </table>
             <p style="font-size:12px;color:#475569;margin-bottom:0;">
-              Demikian laporan ini disampaikan untuk monitoring dan tindak lanjut tim Engineering.<br><br>
+              Demikian laporan ini disampaikan untuk monitoring dan tindak lanjut operasional.<br><br>
               Hormat kami,<br>
               <b>Engineering Administration System</b><br>
               ${config.hotelName}
@@ -1028,13 +1268,13 @@
         </div>
       `;
 
-      return { toEmail, ccEmail, subject, htmlBody, reportType };
+      return { toEmail, bccEmail, subject, htmlBody, reportType };
     }
 
     function generateEmailPreview() {
       const payload = buildEmailPayload();
-      document.getElementById('prevTo').textContent = payload.toEmail || '-';
-      document.getElementById('prevCc').textContent = payload.ccEmail || '-';
+      document.getElementById('prevTo').textContent      = isAdminIT ? payload.toEmail : `HOD Engineering (${maskEmail(payload.toEmail)})`;
+      document.getElementById('prevCc').textContent      = isAdminIT ? `${payload.bccEmail} (Blind CC)` : `General Manager — BCC (${maskEmail(payload.bccEmail)})`;
       document.getElementById('prevSubject').textContent = payload.subject;
       document.getElementById('emailHtmlPreview').innerHTML = payload.htmlBody;
     }
@@ -1042,21 +1282,21 @@
     async function sendEmailNow() {
       const payload = buildEmailPayload();
       if (!payload.toEmail) {
-        showToast('Email HOD Engineering wajib diisi!');
+        showToast('Email HOD Engineering belum diatur oleh Admin IT!');
         return;
       }
 
       const btn = document.getElementById('btnSendServer');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Email...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Laporan...';
 
       const historyItem = {
         timestamp: new Date().toLocaleString('id-ID'),
         type: payload.reportType,
         toEmail: payload.toEmail,
-        ccEmail: payload.ccEmail,
+        ccEmail: payload.bccEmail,
         subject: payload.subject,
-        status: config.scriptUrl ? 'SENT (SERVER)' : 'SIMULATED (DEMO)'
+        status: config.scriptUrl ? 'SENT (BCC GM)' : 'SIMULATED (DEMO)'
       };
 
       try {
@@ -1068,9 +1308,9 @@
               ...payload
             })
           });
-          showToast('Email berhasil dikirim otomatis ke HOD (To) & GM (CC)!');
+          showToast('Laporan berhasil dikirim ke HOD (To) & General Manager (BCC)!');
         } else {
-          showToast('Mode Demo: Simulasi pengiriman email tercatat. Isi URL Apps Script untuk kirim email asli.');
+          showToast('Mode Demo: Simulasi pengiriman tercatat. Hubungkan Apps Script via Admin IT untuk kirim asli.');
         }
 
         state.emails.unshift(historyItem);
@@ -1080,43 +1320,56 @@
         showToast('Terjadi kesalahan saat mengirim email via server.');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-bolt text-amber-400"></i> Kirim Otomatis via Server Google';
+        btn.innerHTML = '<i class="fa-solid fa-bolt text-amber-400"></i> Kirim Laporan Sekarang';
       }
     }
 
     function openMailtoFallback() {
+      if (!isAdminIT) return;
       const payload = buildEmailPayload();
-      const plainText = `Yth. HOD Engineering (CC: General Manager),\n\nMohon tinjau laporan status Preventive Maintenance AC ${config.hotelName} terlampir pada sistem HVAC Engineering.\n\nSubjek: ${payload.subject}`;
-      const mailto = `mailto:${encodeURIComponent(payload.toEmail)}?cc=${encodeURIComponent(payload.ccEmail)}&subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(plainText)}`;
+      const plainText = `Yth. HOD Engineering,\n\nMohon tinjau laporan status Preventive Maintenance AC ${config.hotelName}.\n\nSubjek: ${payload.subject}`;
+      const mailto = `mailto:${encodeURIComponent(payload.toEmail)}?bcc=${encodeURIComponent(payload.bccEmail)}&subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(plainText)}`;
       window.open(mailto, '_blank');
     }
 
     function renderEmailHistory() {
       const tbody = document.getElementById('emailHistoryBody');
       if (state.emails.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Belum ada riwayat pengiriman notifikasi email.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Belum ada riwayat pengiriman laporan.</td></tr>`;
         return;
       }
-      tbody.innerHTML = state.emails.map(e => `
-        <tr>
-          <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${e.timestamp}</td>
-          <td class="py-2.5 px-3 font-medium text-slate-700">${e.type}</td>
-          <td class="py-2.5 px-3 text-slate-700">${e.toEmail}</td>
-          <td class="py-2.5 px-3 text-slate-500">${e.ccEmail || '-'}</td>
-          <td class="py-2.5 px-3 text-slate-800">${e.subject}</td>
-          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">${e.status}</span></td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = state.emails.map(e => {
+        const displayTo  = isAdminIT ? e.toEmail : maskEmail(e.toEmail);
+        const displayBcc = isAdminIT ? (e.ccEmail || '-') : (e.ccEmail ? maskEmail(e.ccEmail) : '-');
+        return `
+          <tr>
+            <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap">${e.timestamp}</td>
+            <td class="py-2.5 px-3 font-medium text-slate-700">${e.type}</td>
+            <td class="py-2.5 px-3 text-slate-700">${displayTo}</td>
+            <td class="py-2.5 px-3 text-slate-500">${displayBcc}</td>
+            <td class="py-2.5 px-3 text-slate-800">${e.subject}</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">${e.status}</span></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     // =========================================================================
-    // PENGATURAN, EXPORT CSV & NAVIGASI TAB
+    // PENGATURAN ADMIN IT, EXPORT CSV & NAVIGASI TAB
     // =========================================================================
     function saveSettings() {
+      if (!isAdminIT) return;
       config.hotelName = document.getElementById('cfgHotelName').value.trim() || DEFAULT_HOTEL_NAME;
       config.scriptUrl = document.getElementById('cfgScriptUrl').value.trim();
       config.hodEmail  = document.getElementById('cfgHodEmail').value.trim()  || DEFAULT_HOD_EMAIL;
       config.gmEmail   = document.getElementById('cfgGmEmail').value.trim()   || DEFAULT_GM_EMAIL;
+
+      const newPin = document.getElementById('cfgAdminPin').value.trim();
+      if (newPin) {
+        config.adminPin = newPin;
+        localStorage.setItem('hvac_admin_pin', newPin);
+        document.getElementById('cfgAdminPin').value = '';
+      }
 
       localStorage.setItem('hvac_hotel_name', config.hotelName);
       localStorage.setItem('hvac_script_url', config.scriptUrl);
@@ -1126,11 +1379,12 @@
       document.getElementById('emailToInput').value = config.hodEmail;
       document.getElementById('emailCcInput').value = config.gmEmail;
 
-      showToast('Konfigurasi disimpan. Menyinkronkan data...');
+      showToast('Konfigurasi Admin IT disimpan.');
       syncAllData();
     }
 
     async function seedDemoDataToSheet() {
+      if (!isAdminIT) return;
       const samples = getSampleUnits();
       for (const u of samples) {
         await persistUnit(u);
@@ -1151,6 +1405,11 @@
     }
 
     function switchTab(tabName) {
+      if (tabName === 'settings' && !isAdminIT) {
+        toggleAdminAuth();
+        return;
+      }
+
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
@@ -1159,8 +1418,10 @@
         btn.classList.add('text-slate-600');
       });
       const activeBtn = document.getElementById(`nav-${tabName}`);
-      activeBtn.classList.add('tab-active');
-      activeBtn.classList.remove('text-slate-600');
+      if (activeBtn) {
+        activeBtn.classList.add('tab-active');
+        activeBtn.classList.remove('text-slate-600');
+      }
 
       if (tabName === 'email') generateEmailPreview();
     }
